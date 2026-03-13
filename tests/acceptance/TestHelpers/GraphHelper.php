@@ -2445,4 +2445,56 @@ class GraphHelper {
 			self::getRequestHeaders()
 		);
 	}
+
+	/**
+	 * @param string $baseUrl
+	 * @param string $xRequestId
+	 * @param string $adminUser
+	 * @param string $adminPassword
+	 *
+	 * @return ResponseInterface
+	 * @throws GuzzleException
+	 */
+	public static function markFavorite(
+		string $baseUrl,
+		string $xRequestId,
+		string $user,
+		string $password,
+		string $fileId
+	): ResponseInterface {
+		$url = self::getFullUrl($baseUrl, "me/drive/items/$fileId/follow");
+		return HttpRequestHelper::post(
+			$url,
+			$xRequestId,
+			$user,
+			$password,
+			self::getRequestHeaders()
+		);
+	}
+
+	/**
+	 * @param string $baseUrl
+	 * @param string $xRequestId
+	 * @param string $adminUser
+	 * @param string $adminPassword
+	 *
+	 * @return ResponseInterface
+	 * @throws GuzzleException
+	 */
+	public static function unmarkFavorite(
+		string $baseUrl,
+		string $xRequestId,
+		string $user,
+		string $password,
+		string $fileId
+	): ResponseInterface {
+		$url = self::getFullUrl($baseUrl, "me/drive/following/$fileId");
+		return HttpRequestHelper::delete(
+			$url,
+			$xRequestId,
+			$user,
+			$password,
+			self::getRequestHeaders()
+		);
+	}
 }
