@@ -26,7 +26,7 @@ type Config struct {
 	SkipUserGroupsInToken bool `yaml:"skip_user_groups_in_token" env:"STORAGE_SYSTEM_SKIP_USER_GROUPS_IN_TOKEN" desc:"Disables the loading of user's group memberships from the reva access token." introductionVersion:"1.0.0"`
 
 	FileMetadataCache Cache   `yaml:"cache"`
-	Driver            string  `yaml:"driver" env:"STORAGE_SYSTEM_DRIVER" desc:"The driver which should be used by the service. The only supported driver is 'decomposed'. For backwards compatibility reasons it's also possible to use the 'ocis' driver and configure it using the 'decomposed' options. " introductionVersion:"1.0.0"`
+	Driver            string  `yaml:"driver" env:"STORAGE_SYSTEM_DRIVER" desc:"The driver which should be used by the service. Supported values are: 'decomposed' and 'kvfs'. The 'kvfs' driver stores metadata in NATS JetStream KV and blobs in S3. For backwards compatibility reasons it's also possible to use the 'ocis' driver and configure it using the 'decomposed' options. " introductionVersion:"1.0.0"`
 	Drivers           Drivers `yaml:"drivers"`
 	DataServerURL     string  `yaml:"data_server_url" env:"STORAGE_SYSTEM_DATA_SERVER_URL" desc:"URL of the data server, needs to be reachable by other services using this service." introductionVersion:"1.0.0"`
 
@@ -64,6 +64,7 @@ type HTTPConfig struct {
 // Drivers holds Drivers config
 type Drivers struct {
 	Decomposed DecomposedDriver `yaml:"decomposed"`
+	KVFS       KVFSDriver       `yaml:"kvfs"`
 }
 
 // DecomposedDriver holds the decomposed Driver config
@@ -84,4 +85,24 @@ type Cache struct {
 	DisablePersistence bool          `yaml:"disable_persistence" env:"OC_CACHE_DISABLE_PERSISTENCE;STORAGE_SYSTEM_CACHE_DISABLE_PERSISTENCE" desc:"Disables persistence of the cache. Only applies when store type 'nats-js-kv' is configured. Defaults to false." introductionVersion:"1.0.0"`
 	AuthUsername       string        `yaml:"auth_username" env:"OC_CACHE_AUTH_USERNAME;STORAGE_SYSTEM_CACHE_AUTH_USERNAME" desc:"Username for the configured store. Only applies when store type 'nats-js-kv' is configured." introductionVersion:"1.0.0"`
 	AuthPassword       string        `yaml:"auth_password" env:"OC_CACHE_AUTH_PASSWORD;STORAGE_SYSTEM_CACHE_AUTH_PASSWORD" desc:"Password for the configured store. Only applies when store type 'nats-js-kv' is configured." introductionVersion:"1.0.0"`
+}
+
+// KVFSDriver is the storage driver configuration when using 'kvfs' storage driver.
+// It stores metadata in NATS JetStream KV and blobs in S3, requiring no local disk.
+type KVFSDriver struct {
+	NATSNodes    []string `yaml:"nats_nodes" env:"STORAGE_SYSTEM_KVFS_NATS_NODES" desc:"List of NATS server addresses for JetStream KV metadata storage. See the Environment Variable Types description for more details." introductionVersion:"1.0.0"`
+	NATSUsername string   `yaml:"nats_username" env:"STORAGE_SYSTEM_KVFS_NATS_USERNAME" desc:"Username used to authenticate with the NATS server." introductionVersion:"1.0.0"`
+	NATSPassword string   `yaml:"nats_password" env:"STORAGE_SYSTEM_KVFS_NATS_PASSWORD" desc:"Password used to authenticate with the NATS server." introductionVersion:"1.0.0"`
+	BucketPrefix string   `yaml:"bucket_prefix" env:"STORAGE_SYSTEM_KVFS_BUCKET_PREFIX" desc:"Prefix for NATS KV bucket names. Isolates system metadata from user data." introductionVersion:"1.0.0"`
+	NATSReplicas int      `yaml:"nats_replicas" env:"STORAGE_SYSTEM_KVFS_NATS_REPLICAS" desc:"Number of replicas for NATS KV buckets. Must be <= NATS cluster size. Default: 1." introductionVersion:"1.0.0"`
+
+	// ChildrenMaxValueSize raises the per-value byte cap on the children bucket; allows larger directories. Zero means use NATS default (1 MiB).
+	ChildrenMaxValueSize int32 `yaml:"children_max_value_size" env:"STORAGE_SYSTEM_KVFS_CHILDREN_MAX_VALUE_SIZE" desc:"Maximum bytes per children-bucket value. NATS server max_payload caps this. Zero = NATS default." introductionVersion:"1.0.0"`
+
+	// S3 blob storage
+	S3Region    string `yaml:"s3_region" env:"STORAGE_SYSTEM_KVFS_S3_REGION" desc:"Region of the S3 bucket." introductionVersion:"1.0.0"`
+	S3AccessKey string `yaml:"s3_access_key" env:"STORAGE_SYSTEM_KVFS_S3_ACCESS_KEY" desc:"Access key for the S3 bucket." introductionVersion:"1.0.0"`
+	S3SecretKey string `yaml:"s3_secret_key" env:"STORAGE_SYSTEM_KVFS_S3_SECRET_KEY" desc:"Secret key for the S3 bucket." introductionVersion:"1.0.0"`
+	S3Endpoint  string `yaml:"s3_endpoint" env:"STORAGE_SYSTEM_KVFS_S3_ENDPOINT" desc:"Endpoint URL of the S3 service." introductionVersion:"1.0.0"`
+	S3Bucket    string `yaml:"s3_bucket" env:"STORAGE_SYSTEM_KVFS_S3_BUCKET" desc:"Name of the S3 bucket for blob storage." introductionVersion:"1.0.0"`
 }

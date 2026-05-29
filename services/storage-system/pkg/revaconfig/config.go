@@ -149,7 +149,7 @@ func StorageSystemFromStruct(cfg *config.Config) map[string]any {
 }
 
 func metadataDrivers(localEndpoint string, cfg *config.Config) map[string]any {
-	m := map[string]any{
+	decomposedCfg := map[string]any{
 		"metadata_backend":           "messagepack",
 		"root":                       cfg.Drivers.Decomposed.Root,
 		"user_layout":                "{{.Id.OpaqueId}}",
@@ -175,8 +175,26 @@ func metadataDrivers(localEndpoint string, cfg *config.Config) map[string]any {
 		},
 	}
 
+	kvfsCfg := map[string]any{
+		"nats_nodes":              cfg.Drivers.KVFS.NATSNodes,
+		"nats_username":           cfg.Drivers.KVFS.NATSUsername,
+		"nats_password":           cfg.Drivers.KVFS.NATSPassword,
+		"nats_replicas":           cfg.Drivers.KVFS.NATSReplicas,
+		"bucket_prefix":           cfg.Drivers.KVFS.BucketPrefix,
+		"s3.endpoint":             cfg.Drivers.KVFS.S3Endpoint,
+		"s3.region":               cfg.Drivers.KVFS.S3Region,
+		"s3.bucket":               cfg.Drivers.KVFS.S3Bucket,
+		"s3.access_key":           cfg.Drivers.KVFS.S3AccessKey,
+		"s3.secret_key":           cfg.Drivers.KVFS.S3SecretKey,
+		"children_max_value_size": cfg.Drivers.KVFS.ChildrenMaxValueSize,
+		"disable_versioning":      true,
+		// No GC for system storage: share metadata is always referenced
+		"gc_enabled": false,
+	}
+
 	return map[string]any{
-		"ocis":       m, // deprecated: use decomposed
-		"decomposed": m,
+		"ocis":       decomposedCfg, // deprecated: use decomposed
+		"decomposed": decomposedCfg,
+		"kvfs":       kvfsCfg,
 	}
 }
