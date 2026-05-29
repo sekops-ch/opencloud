@@ -391,3 +391,27 @@ func DecomposedS3NoEvents(cfg *config.Config) map[string]any {
 		},
 	}
 }
+
+// KVFS is the config mapping for the KVFS storage driver
+func KVFS(cfg *config.Config) map[string]interface{} {
+	return map[string]interface{}{
+		"nats_nodes":         cfg.Drivers.KVFS.NATSNodes,
+		"nats_username":      cfg.Drivers.KVFS.NATSUsername,
+		"nats_password":      cfg.Drivers.KVFS.NATSPassword,
+		"nats_replicas":      cfg.Drivers.KVFS.NATSReplicas,
+		"bucket_prefix":      cfg.Drivers.KVFS.BucketPrefix,
+		"s3.endpoint":        cfg.Drivers.KVFS.S3Endpoint,
+		"s3.region":          cfg.Drivers.KVFS.S3Region,
+		"s3.bucket":          cfg.Drivers.KVFS.S3Bucket,
+		"s3.access_key":      cfg.Drivers.KVFS.S3AccessKey,
+		"s3.secret_key":      cfg.Drivers.KVFS.S3SecretKey,
+		"disable_versioning": cfg.Drivers.KVFS.DisableVersioning,
+		"max_versions":       cfg.Drivers.KVFS.MaxVersions,
+		"gc_enabled":         cfg.Drivers.KVFS.GCEnabled,
+		"gc_interval":        cfg.Drivers.KVFS.GCInterval,
+		"gc_dry_run":         cfg.Drivers.KVFS.GCDryRun,
+		"gc_min_age":         cfg.Drivers.KVFS.GCMinAge,
+		"gc_run_on_start":    cfg.Drivers.KVFS.GCRunOnStart,
+		"mount_id":           cfg.MountID,
+	}
+}

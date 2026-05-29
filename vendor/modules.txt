@@ -1647,6 +1647,7 @@ github.com/opencloud-eu/reva/v2/pkg/storage/fs/eosgrpc
 github.com/opencloud-eu/reva/v2/pkg/storage/fs/eosgrpchome
 github.com/opencloud-eu/reva/v2/pkg/storage/fs/eoshome
 github.com/opencloud-eu/reva/v2/pkg/storage/fs/hello
+github.com/opencloud-eu/reva/v2/pkg/storage/fs/kvfs
 github.com/opencloud-eu/reva/v2/pkg/storage/fs/loader
 github.com/opencloud-eu/reva/v2/pkg/storage/fs/local
 github.com/opencloud-eu/reva/v2/pkg/storage/fs/localhome

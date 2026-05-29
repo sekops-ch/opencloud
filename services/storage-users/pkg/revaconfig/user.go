@@ -16,6 +16,7 @@ func StorageProviderDrivers(cfg *config.Config) map[string]any {
 		"decomposed":   DecomposedNoEvents(cfg),
 		"decomposeds3": DecomposedS3NoEvents(cfg),
 		"posix":        Posix(cfg, cfg.Drivers.Posix.ScanFS, cfg.Drivers.Posix.WatchFS),
+		"kvfs":         KVFS(cfg),
 
 		"ocis": Decomposed(cfg),           // deprecated: use decomposed
 		"s3ng": DecomposedS3NoEvents(cfg), // deprecated: use decomposeds3
@@ -35,6 +36,7 @@ func DataProviderDrivers(cfg *config.Config) map[string]any {
 		"decomposed":   Decomposed(cfg),
 		"decomposeds3": DecomposedS3(cfg),
 		"posix":        Posix(cfg, false, false),
+		"kvfs":         KVFS(cfg),
 
 		"ocis": Decomposed(cfg),           // deprecated: use decomposed
 		"s3ng": DecomposedS3NoEvents(cfg), // deprecated: use decomposeds3

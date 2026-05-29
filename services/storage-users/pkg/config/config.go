@@ -93,6 +93,7 @@ type Drivers struct {
 	DecomposedS3 DecomposedS3Driver `yaml:"decomposeds3"`
 	OwnCloudSQL  OwnCloudSQLDriver  `yaml:"owncloudsql"`
 	Posix        PosixDriver        `yaml:"posix"`
+	KVFS         KVFSDriver         `yaml:"kvfs"`
 
 	EOS   EOSDriver   `yaml:",omitempty"` // not supported by the OpenCloud product, therefore not part of docs
 	Local LocalDriver `yaml:",omitempty"` // not supported by the OpenCloud product, therefore not part of docs
@@ -211,6 +212,36 @@ type PosixDriver struct {
 	WatchNotificationBrokers string        `yaml:"watch_notification_brokers" env:"STORAGE_USERS_POSIX_WATCH_NOTIFICATION_BROKERS,STORAGE_USERS_POSIX_WATCH_FOLDER_KAFKA_BROKERS" desc:"Comma-separated list of kafka brokers to read the watchfolder events from." introductionVersion:"1.0.0" deprecationVersion:"4.0.0" deprecationInfo:"STORAGE_USERS_POSIX_WATCH_FOLDER_KAFKA_BROKERS is deprecated and will be removed in a future version. Please use STORAGE_USERS_POSIX_WATCH_NOTIFICATION_BROKERS instead."`
 	WatchRoot                string        `yaml:"watch_root" env:"STORAGE_USERS_POSIX_WATCH_ROOT" desc:"Path to the watch root directory. Event paths will be considered relative to this path. Only applies to the 'gpswatchfolder' and 'cephfs' watchers." introductionVersion:"4.0.0"`
 	InotifyStatsFrequency    time.Duration `yaml:"inotify_stats_frequency" env:"STORAGE_USERS_POSIX_INOTIFY_STATS_FREQUENCY" desc:"Frequency to log inotify stats." introductionVersion:"4.0.0"`
+}
+
+// KVFSDriver is the storage driver configuration when using 'kvfs' storage driver
+// It stores metadata and tree structure in NATS JetStream KV, and blobs in S3.
+type KVFSDriver struct {
+	NATSNodes    []string `yaml:"nats_nodes" env:"STORAGE_USERS_KVFS_NATS_NODES" desc:"List of NATS server addresses for JetStream KV metadata storage. See the Environment Variable Types description for more details." introductionVersion:"1.0.0"`
+	NATSUsername string   `yaml:"nats_username" env:"STORAGE_USERS_KVFS_NATS_USERNAME" desc:"Username used to authenticate with the NATS server." introductionVersion:"1.0.0"`
+	NATSPassword string   `yaml:"nats_password" env:"STORAGE_USERS_KVFS_NATS_PASSWORD" desc:"Password used to authenticate with the NATS server." introductionVersion:"1.0.0"`
+	BucketPrefix string   `yaml:"bucket_prefix" env:"STORAGE_USERS_KVFS_BUCKET_PREFIX" desc:"Prefix for NATS KV bucket names. Allows multiple instances to share a NATS cluster." introductionVersion:"1.0.0"`
+
+	// NATS replication
+	NATSReplicas int `yaml:"nats_replicas" env:"STORAGE_USERS_KVFS_NATS_REPLICAS" desc:"Number of replicas for NATS KV buckets. Must be <= NATS cluster size. Default: 1." introductionVersion:"1.0.0"`
+
+	// S3 blob storage
+	S3Region    string `yaml:"s3_region" env:"STORAGE_USERS_KVFS_S3_REGION" desc:"Region of the S3 bucket." introductionVersion:"1.0.0"`
+	S3AccessKey string `yaml:"s3_access_key" env:"STORAGE_USERS_KVFS_S3_ACCESS_KEY" desc:"Access key for the S3 bucket." introductionVersion:"1.0.0"`
+	S3SecretKey string `yaml:"s3_secret_key" env:"STORAGE_USERS_KVFS_S3_SECRET_KEY" desc:"Secret key for the S3 bucket." introductionVersion:"1.0.0"`
+	S3Endpoint  string `yaml:"s3_endpoint" env:"STORAGE_USERS_KVFS_S3_ENDPOINT" desc:"Endpoint URL of the S3 service." introductionVersion:"1.0.0"`
+	S3Bucket    string `yaml:"s3_bucket" env:"STORAGE_USERS_KVFS_S3_BUCKET" desc:"Name of the S3 bucket for blob storage." introductionVersion:"1.0.0"`
+
+	// Versioning
+	DisableVersioning bool `yaml:"disable_versioning" env:"OC_DISABLE_VERSIONING" desc:"Disables versioning of files." introductionVersion:"1.0.0"`
+	MaxVersions       int  `yaml:"max_versions" env:"STORAGE_USERS_KVFS_MAX_VERSIONS" desc:"Maximum number of file revisions to retain per file. 0 means unlimited." introductionVersion:"1.0.0"`
+
+	// Garbage collection
+	GCEnabled    bool   `yaml:"gc_enabled" env:"STORAGE_USERS_KVFS_GC_ENABLED" desc:"Enable background S3 blob garbage collection. Default: false." introductionVersion:"1.0.0"`
+	GCInterval   string `yaml:"gc_interval" env:"STORAGE_USERS_KVFS_GC_INTERVAL" desc:"Interval between GC cycles. Default: 24h." introductionVersion:"1.0.0"`
+	GCDryRun     bool   `yaml:"gc_dry_run" env:"STORAGE_USERS_KVFS_GC_DRY_RUN" desc:"Log orphaned blobs without deleting them. Default: true." introductionVersion:"1.0.0"`
+	GCMinAge     string `yaml:"gc_min_age" env:"STORAGE_USERS_KVFS_GC_MIN_AGE" desc:"Minimum blob age before GC considers it. Default: 24h." introductionVersion:"1.0.0"`
+	GCRunOnStart bool   `yaml:"gc_run_on_start" env:"STORAGE_USERS_KVFS_GC_RUN_ON_START" desc:"Run first GC cycle immediately on startup. Default: false." introductionVersion:"1.0.0"`
 }
 
 // Events combines the configuration options for the event bus.
