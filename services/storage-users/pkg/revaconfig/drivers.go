@@ -394,6 +394,18 @@ func DecomposedS3NoEvents(cfg *config.Config) map[string]any {
 
 // KVFS is the config mapping for the KVFS storage driver
 func KVFS(cfg *config.Config) map[string]interface{} {
+	// The GC resolves space-owner liveness through the gateway IN-PROCESS, so it
+	// must address the gateway by its registry SERVICE NAME (e.g.
+	// "eu.opencloud.api.gateway") — the registry-backed client pool resolves the
+	// id as a service name, so a bind address like "127.0.0.1:9142" yields
+	// "service not found". cfg.Reva.Address is exactly what the other in-process
+	// services (graph, webdav) pass to the gateway selector; RevaGatewayGRPCAddr
+	// is the bind address used only by no-registry CLI contexts (e.g. trash-bin
+	// purge). Falling back to the bind address keeps split/no-registry setups working.
+	gatewayAddr := cfg.RevaGatewayGRPCAddr
+	if cfg.Reva != nil && cfg.Reva.Address != "" {
+		gatewayAddr = cfg.Reva.Address
+	}
 	return map[string]interface{}{
 		"nats_nodes":         cfg.Drivers.KVFS.NATSNodes,
 		"nats_username":      cfg.Drivers.KVFS.NATSUsername,
@@ -412,6 +424,25 @@ func KVFS(cfg *config.Config) map[string]interface{} {
 		"gc_dry_run":         cfg.Drivers.KVFS.GCDryRun,
 		"gc_min_age":         cfg.Drivers.KVFS.GCMinAge,
 		"gc_run_on_start":    cfg.Drivers.KVFS.GCRunOnStart,
-		"mount_id":           cfg.MountID,
+		// GC identity-orphan reaping: the driver resolves space-owner liveness
+		// through the gateway as the service account. storage-system leaves the
+		// service-account fields empty (no personal spaces) so its resolver stays
+		// disabled. gateway_addr is the registry service name (computed above).
+		"gateway_addr":                gatewayAddr,
+		"service_account_id":          cfg.ServiceAccount.ServiceAccountID,
+		"service_account_secret":      cfg.ServiceAccount.ServiceAccountSecret,
+		"max_cas_retries":             cfg.Drivers.KVFS.MaxCASRetries,
+		"children_max_value_size":     cfg.Drivers.KVFS.ChildrenMaxValueSize,
+		"small_file_threshold":        cfg.Drivers.KVFS.SmallFileThreshold,
+		"upload_backend":              cfg.Drivers.KVFS.UploadBackend,
+		"upload_tmp_dir":              cfg.Drivers.KVFS.UploadTmpDir,
+		"upload_nats_stream":          cfg.Drivers.KVFS.UploadNATSStream,
+		"upload_nats_subject_prefix":  cfg.Drivers.KVFS.UploadNATSSubjectPrefix,
+		"upload_nats_storage":         cfg.Drivers.KVFS.UploadNATSStorage,
+		"upload_nats_replicas":        cfg.Drivers.KVFS.UploadNATSReplicas,
+		"upload_nats_max_age":         cfg.Drivers.KVFS.UploadNATSMaxAge,
+		"upload_nats_max_bytes":       cfg.Drivers.KVFS.UploadNATSMaxBytes,
+		"upload_nats_max_chunk_bytes": cfg.Drivers.KVFS.UploadNATSMaxChunkBytes,
+		"mount_id":                    cfg.MountID,
 	}
 }
