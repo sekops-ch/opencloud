@@ -187,9 +187,17 @@ func metadataDrivers(localEndpoint string, cfg *config.Config) map[string]any {
 		"s3.access_key":           cfg.Drivers.KVFS.S3AccessKey,
 		"s3.secret_key":           cfg.Drivers.KVFS.S3SecretKey,
 		"children_max_value_size": cfg.Drivers.KVFS.ChildrenMaxValueSize,
+		"max_cas_retries":         cfg.Drivers.KVFS.MaxCASRetries,
 		"disable_versioning":      true,
-		// No GC for system storage: share metadata is always referenced
-		"gc_enabled": false,
+		// The system instance has its own uploads bucket and blob
+		// namespace, so it needs its own GC: expired upload sessions and
+		// crash residue accumulate without bound otherwise. Off by
+		// default, like storage-users.
+		"gc_enabled":      cfg.Drivers.KVFS.GCEnabled,
+		"gc_interval":     cfg.Drivers.KVFS.GCInterval,
+		"gc_dry_run":      cfg.Drivers.KVFS.GCDryRun,
+		"gc_min_age":      cfg.Drivers.KVFS.GCMinAge,
+		"gc_run_on_start": cfg.Drivers.KVFS.GCRunOnStart,
 	}
 
 	return map[string]any{

@@ -99,6 +99,18 @@ type KVFSDriver struct {
 	// ChildrenMaxValueSize raises the per-value byte cap on the children bucket; allows larger directories. Zero means use NATS default (1 MiB).
 	ChildrenMaxValueSize int32 `yaml:"children_max_value_size" env:"STORAGE_SYSTEM_KVFS_CHILDREN_MAX_VALUE_SIZE" desc:"Maximum bytes per children-bucket value. NATS server max_payload caps this. Zero = NATS default." introductionVersion:"1.0.0"`
 
+	// MaxCASRetries bounds every CAS retry loop in the driver. Zero means use the package default (10).
+	MaxCASRetries int `yaml:"max_cas_retries" env:"STORAGE_SYSTEM_KVFS_MAX_CAS_RETRIES" desc:"Maximum CAS retry attempts per write. Default: 10." introductionVersion:"1.0.0"`
+
+	// Garbage collection — mirrored from storage-users. The system
+	// instance has its own buckets and blob namespace, so it needs its
+	// own GC to reap expired upload sessions and crash residue.
+	GCEnabled    bool   `yaml:"gc_enabled" env:"STORAGE_SYSTEM_KVFS_GC_ENABLED" desc:"Enable background S3 blob garbage collection. Default: false." introductionVersion:"1.0.0"`
+	GCInterval   string `yaml:"gc_interval" env:"STORAGE_SYSTEM_KVFS_GC_INTERVAL" desc:"Interval between GC cycles. Default: 24h." introductionVersion:"1.0.0"`
+	GCDryRun     bool   `yaml:"gc_dry_run" env:"STORAGE_SYSTEM_KVFS_GC_DRY_RUN" desc:"Log orphaned blobs without deleting them. Default: true." introductionVersion:"1.0.0"`
+	GCMinAge     string `yaml:"gc_min_age" env:"STORAGE_SYSTEM_KVFS_GC_MIN_AGE" desc:"Minimum blob age before GC considers it. Default: 24h." introductionVersion:"1.0.0"`
+	GCRunOnStart bool   `yaml:"gc_run_on_start" env:"STORAGE_SYSTEM_KVFS_GC_RUN_ON_START" desc:"Run first GC cycle immediately on startup. Default: false." introductionVersion:"1.0.0"`
+
 	// S3 blob storage
 	S3Region    string `yaml:"s3_region" env:"STORAGE_SYSTEM_KVFS_S3_REGION" desc:"Region of the S3 bucket." introductionVersion:"1.0.0"`
 	S3AccessKey string `yaml:"s3_access_key" env:"STORAGE_SYSTEM_KVFS_S3_ACCESS_KEY" desc:"Access key for the S3 bucket." introductionVersion:"1.0.0"`

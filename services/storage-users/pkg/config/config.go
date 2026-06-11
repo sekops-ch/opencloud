@@ -242,6 +242,30 @@ type KVFSDriver struct {
 	GCDryRun     bool   `yaml:"gc_dry_run" env:"STORAGE_USERS_KVFS_GC_DRY_RUN" desc:"Log orphaned blobs without deleting them. Default: true." introductionVersion:"1.0.0"`
 	GCMinAge     string `yaml:"gc_min_age" env:"STORAGE_USERS_KVFS_GC_MIN_AGE" desc:"Minimum blob age before GC considers it. Default: 24h." introductionVersion:"1.0.0"`
 	GCRunOnStart bool   `yaml:"gc_run_on_start" env:"STORAGE_USERS_KVFS_GC_RUN_ON_START" desc:"Run first GC cycle immediately on startup. Default: false." introductionVersion:"1.0.0"`
+
+	// MaxCASRetries bounds every CAS retry loop in the driver. Bursts on a hot parent need more retries than the default 10.
+	MaxCASRetries int `yaml:"max_cas_retries" env:"STORAGE_USERS_KVFS_MAX_CAS_RETRIES" desc:"Maximum CAS retry attempts per write. Tune up on contended hot-parent workloads. Default: 10." introductionVersion:"1.0.0"`
+
+	// ChildrenMaxValueSize raises the per-value byte cap on the children bucket; allows larger directories. Zero means use NATS default (1 MiB).
+	ChildrenMaxValueSize int32 `yaml:"children_max_value_size" env:"STORAGE_USERS_KVFS_CHILDREN_MAX_VALUE_SIZE" desc:"Maximum bytes per children-bucket value. NATS server max_payload caps this. Zero = NATS default." introductionVersion:"1.0.0"`
+
+	// SmallFileThreshold selects single-PUT vs multipart at FinishUpload.
+	SmallFileThreshold int64 `yaml:"small_file_threshold" env:"STORAGE_USERS_KVFS_SMALL_FILE_THRESHOLD" desc:"Byte size below which blob uploads use a single S3 PutObject; multipart above. Default: 16 MiB." introductionVersion:"1.0.0"`
+
+	// --- TUS upload-staging cache ---
+	// UploadBackend selects between "disk" (default; pod-local emptyDir) and
+	// "nats" (cross-pod shared JetStream stream).
+	UploadBackend string `yaml:"upload_backend" env:"STORAGE_USERS_KVFS_UPLOAD_BACKEND" desc:"TUS upload-staging backend. 'disk' (default, pod-local) or 'nats' (cross-pod via JetStream stream)." introductionVersion:"1.0.0"`
+	UploadTmpDir  string `yaml:"upload_tmp_dir" env:"STORAGE_USERS_KVFS_UPLOAD_TMP_DIR" desc:"Directory the disk backend uses for per-session staging files. Default: /var/lib/kvfs/uploads." introductionVersion:"1.0.0"`
+
+	// NATS-backed cache config — only used when UploadBackend=nats.
+	UploadNATSStream        string        `yaml:"upload_nats_stream" env:"STORAGE_USERS_KVFS_UPLOAD_NATS_STREAM" desc:"JetStream stream name for the NATS upload-cache backend. Default: {BucketPrefix}-uploads-stream." introductionVersion:"1.0.0"`
+	UploadNATSSubjectPrefix string        `yaml:"upload_nats_subject_prefix" env:"STORAGE_USERS_KVFS_UPLOAD_NATS_SUBJECT_PREFIX" desc:"Subject root for per-session messages. Default: {BucketPrefix}-uploads." introductionVersion:"1.0.0"`
+	UploadNATSStorage       string        `yaml:"upload_nats_storage" env:"STORAGE_USERS_KVFS_UPLOAD_NATS_STORAGE" desc:"JetStream storage mode: 'file' (default, durable) or 'memory' (RAM-bounded by NATS memoryStore.maxSize)." introductionVersion:"1.0.0"`
+	UploadNATSReplicas      int           `yaml:"upload_nats_replicas" env:"STORAGE_USERS_KVFS_UPLOAD_NATS_REPLICAS" desc:"Stream replica count. Default: 1 (TUS resume is the safety net for replica loss)." introductionVersion:"1.0.0"`
+	UploadNATSMaxAge        time.Duration `yaml:"upload_nats_max_age" env:"STORAGE_USERS_KVFS_UPLOAD_NATS_MAX_AGE" desc:"Auto-purge abandoned uploads after this duration. Default: 24h (matches UploadSession TTL)." introductionVersion:"1.0.0"`
+	UploadNATSMaxBytes      int64         `yaml:"upload_nats_max_bytes" env:"STORAGE_USERS_KVFS_UPLOAD_NATS_MAX_BYTES" desc:"Total stream-size cap across all in-flight uploads. NATS rejects writes when full. Default: 5 GiB." introductionVersion:"1.0.0"`
+	UploadNATSMaxChunkBytes int           `yaml:"upload_nats_max_chunk_bytes" env:"STORAGE_USERS_KVFS_UPLOAD_NATS_MAX_CHUNK_BYTES" desc:"Largest single message the cache publishes. Must be <= NATS max_payload. Default: 8 MiB." introductionVersion:"1.0.0"`
 }
 
 // Events combines the configuration options for the event bus.
