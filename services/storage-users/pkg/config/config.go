@@ -246,6 +246,9 @@ type KVFSDriver struct {
 	// MaxCASRetries bounds every CAS retry loop in the driver. Bursts on a hot parent need more retries than the default 10.
 	MaxCASRetries int `yaml:"max_cas_retries" env:"STORAGE_USERS_KVFS_MAX_CAS_RETRIES" desc:"Maximum CAS retry attempts per write. Tune up on contended hot-parent workloads. Default: 10." introductionVersion:"1.0.0"`
 
+	// MaxDeleteDepth bounds recursive delete traversal (trash purge, space delete).
+	MaxDeleteDepth int `yaml:"max_delete_depth" env:"STORAGE_USERS_KVFS_MAX_DELETE_DEPTH" desc:"Maximum directory nesting depth a recursive delete (trash purge, space delete) traverses before failing with a 4xx. Guards the runtime stack. Default: 100." introductionVersion:"1.0.0"`
+
 	// ChildrenMaxValueSize raises the per-value byte cap on the children bucket; allows larger directories. Zero means use NATS default (1 MiB).
 	ChildrenMaxValueSize int32 `yaml:"children_max_value_size" env:"STORAGE_USERS_KVFS_CHILDREN_MAX_VALUE_SIZE" desc:"Maximum bytes per children-bucket value. NATS server max_payload caps this. Zero = NATS default." introductionVersion:"1.0.0"`
 

@@ -188,6 +188,7 @@ func metadataDrivers(localEndpoint string, cfg *config.Config) map[string]any {
 		"s3.secret_key":           cfg.Drivers.KVFS.S3SecretKey,
 		"children_max_value_size": cfg.Drivers.KVFS.ChildrenMaxValueSize,
 		"max_cas_retries":         cfg.Drivers.KVFS.MaxCASRetries,
+		"max_delete_depth":        cfg.Drivers.KVFS.MaxDeleteDepth,
 		"disable_versioning":      true,
 		// The system instance has its own uploads bucket and blob
 		// namespace, so it needs its own GC: expired upload sessions and
