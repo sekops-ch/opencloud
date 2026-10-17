@@ -605,58 +605,6 @@ func (s *KVStore) GetChildren(spaceID, parentID string) (ChildMap, uint64, error
 	return children, entry.Revision(), nil
 }
 
-// KV tombstone markers, mirrored from nats.go where they are unexported: the
-// raw last message of a deleted or purged key still exists and carries this
-// header; KeyValue.Get folds it into ErrKeyNotFound.
-const (
-	kvOperationHeader = "KV-Operation"
-	kvOperationDelete = "DEL"
-	kvOperationPurge  = "PURGE"
-)
-
-// getLastAuthoritative confirms a direct-read miss with ONE deterministic read
-// answered by the stream leader ($JS.API.STREAM.MSG.GET — never DIRECT.GET,
-// which any replica may answer from a view that trails a just-acknowledged
-// write). Found -> (value, revision, true, nil); tombstone or no message ->
-// ok=false; transport and leader-election failures surface as errors, never as
-// a silent not-found. No retries, no sleeps — consistency handling beyond this
-// single authoritative read stays with the caller.
-func (s *KVStore) getLastAuthoritative(kv nats.KeyValue, key string) ([]byte, uint64, bool, error) {
-	bucket := kv.Bucket()
-	msg, err := s.js.GetLastMsg("KV_"+bucket, "$KV."+bucket+"."+key)
-	if err != nil {
-		if errors.Is(err, nats.ErrMsgNotFound) {
-			KVAuthoritativeReads.WithLabelValues(bucket, "absent").Inc()
-			return nil, 0, false, nil
-		}
-		return nil, 0, false, errors.Wrapf(err, "kvfs: authoritative read of %s/%s failed", bucket, key)
-	}
-	if op := msg.Header.Get(kvOperationHeader); op == kvOperationDelete || op == kvOperationPurge {
-		KVAuthoritativeReads.WithLabelValues(bucket, "absent").Inc()
-		return nil, 0, false, nil
-	}
-	KVAuthoritativeReads.WithLabelValues(bucket, "hit").Inc()
-	return msg.Data, msg.Sequence, true, nil
-}
-
-// GetChildrenAuthoritative re-reads a children key from the stream leader.
-// resolveRelativePath uses it to confirm that a name absent from a possibly
-// stale children map is truly absent before answering not-found.
-func (s *KVStore) GetChildrenAuthoritative(spaceID, parentID string) (ChildMap, uint64, error) {
-	data, rev, ok, err := s.getLastAuthoritative(s.children, childrenKey(spaceID, parentID))
-	if err != nil {
-		return nil, 0, err
-	}
-	if !ok {
-		return ChildMap{}, 0, nil // empty directory, no entry yet
-	}
-	var children ChildMap
-	if err := msgpack.Unmarshal(data, &children); err != nil {
-		return nil, 0, errors.Wrap(err, "kvfs: failed to unmarshal children")
-	}
-	return children, rev, nil
-}
-
 // PutChildren updates the children list for a parent using CAS.
 // If expectedRev is 0, the entry must not exist (create).
 // When a Create conflict occurs (another pod created children concurrently),
