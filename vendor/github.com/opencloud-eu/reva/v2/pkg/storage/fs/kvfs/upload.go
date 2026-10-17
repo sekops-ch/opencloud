@@ -372,10 +372,9 @@ func (d *kvfsDriver) NewUpload(ctx context.Context, info tusd.FileInfo) (tusd.Up
 // WriteChunk).
 //
 // Replicated KV reads can lag a just-ack'd PutUpload by a short
-// cross-replica convergence window; a cross-pod request that races it
-// gets ErrNotFound and tusd answers 404. The driver deliberately adds
-// no read-your-write retry here — consistency handling belongs to the
-// caller, and decomposedfs behaves the same way.
+// cross-replica convergence window; the store confirms any miss with one
+// authoritative leader read (no retries, no sleeps), so ErrNotFound here
+// is real: the session never existed, expired, or was already finalized.
 func (d *kvfsDriver) GetUpload(ctx context.Context, id string) (tusd.Upload, error) {
 	session, err := d.store.GetUpload(id)
 	if err != nil {

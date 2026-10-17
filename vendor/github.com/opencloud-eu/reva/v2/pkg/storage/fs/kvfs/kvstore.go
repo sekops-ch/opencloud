@@ -37,6 +37,7 @@ type MetadataStore interface {
 	ListNodesBySpace(spaceID string) ([]*NodeEntry, error)
 	GetNodes(spaceID string, nodeIDs []string) (map[string]*NodeEntry, error)
 	GetChildren(spaceID, parentID string) (ChildMap, uint64, error)
+	GetChildrenAuthoritative(spaceID, parentID string) (ChildMap, uint64, error)
 	PutChildren(spaceID, parentID string, children ChildMap, expectedRev uint64) error
 	DeleteChildren(spaceID, parentID string) error
 	GetSpace(spaceID string) (*SpaceEntry, uint64, error)
@@ -454,19 +455,32 @@ func (s *KVStore) GetNode(spaceID, nodeID string) (*NodeEntry, uint64, error) {
 	start := time.Now()
 	entry, err := s.nodes.Get(nodeKey(spaceID, nodeID))
 	KVOperationDuration.WithLabelValues("nodes", "get").Observe(time.Since(start).Seconds())
-	if err != nil {
-		if err == nats.ErrKeyNotFound {
+	var value []byte
+	var revision uint64
+	switch {
+	case err == nil:
+		value, revision = entry.Value(), entry.Revision()
+	case err == nats.ErrKeyNotFound:
+		// A replica's view can trail a just-acknowledged PutNode; confirm the
+		// miss once with the leader before answering not-found.
+		data, rev, ok, aerr := s.getLastAuthoritative(s.nodes, nodeKey(spaceID, nodeID))
+		if aerr != nil {
+			return nil, 0, aerr
+		}
+		if !ok {
 			return nil, 0, ErrNodeNotFound
 		}
+		value, revision = data, rev
+	default:
 		return nil, 0, errors.Wrap(err, "kvfs: failed to get node")
 	}
 
 	var node NodeEntry
-	if err := msgpack.Unmarshal(entry.Value(), &node); err != nil {
+	if err := msgpack.Unmarshal(value, &node); err != nil {
 		return nil, 0, errors.Wrap(err, "kvfs: failed to unmarshal node")
 	}
 
-	return &node, entry.Revision(), nil
+	return &node, revision, nil
 }
 
 // PutNode creates or updates a node using CAS (Compare-And-Swap).
@@ -589,6 +603,58 @@ func (s *KVStore) GetChildren(spaceID, parentID string) (ChildMap, uint64, error
 	}
 
 	return children, entry.Revision(), nil
+}
+
+// KV tombstone markers, mirrored from nats.go where they are unexported: the
+// raw last message of a deleted or purged key still exists and carries this
+// header; KeyValue.Get folds it into ErrKeyNotFound.
+const (
+	kvOperationHeader = "KV-Operation"
+	kvOperationDelete = "DEL"
+	kvOperationPurge  = "PURGE"
+)
+
+// getLastAuthoritative confirms a direct-read miss with ONE deterministic read
+// answered by the stream leader ($JS.API.STREAM.MSG.GET — never DIRECT.GET,
+// which any replica may answer from a view that trails a just-acknowledged
+// write). Found -> (value, revision, true, nil); tombstone or no message ->
+// ok=false; transport and leader-election failures surface as errors, never as
+// a silent not-found. No retries, no sleeps — consistency handling beyond this
+// single authoritative read stays with the caller.
+func (s *KVStore) getLastAuthoritative(kv nats.KeyValue, key string) ([]byte, uint64, bool, error) {
+	bucket := kv.Bucket()
+	msg, err := s.js.GetLastMsg("KV_"+bucket, "$KV."+bucket+"."+key)
+	if err != nil {
+		if errors.Is(err, nats.ErrMsgNotFound) {
+			KVAuthoritativeReads.WithLabelValues(bucket, "absent").Inc()
+			return nil, 0, false, nil
+		}
+		return nil, 0, false, errors.Wrapf(err, "kvfs: authoritative read of %s/%s failed", bucket, key)
+	}
+	if op := msg.Header.Get(kvOperationHeader); op == kvOperationDelete || op == kvOperationPurge {
+		KVAuthoritativeReads.WithLabelValues(bucket, "absent").Inc()
+		return nil, 0, false, nil
+	}
+	KVAuthoritativeReads.WithLabelValues(bucket, "hit").Inc()
+	return msg.Data, msg.Sequence, true, nil
+}
+
+// GetChildrenAuthoritative re-reads a children key from the stream leader.
+// resolveRelativePath uses it to confirm that a name absent from a possibly
+// stale children map is truly absent before answering not-found.
+func (s *KVStore) GetChildrenAuthoritative(spaceID, parentID string) (ChildMap, uint64, error) {
+	data, rev, ok, err := s.getLastAuthoritative(s.children, childrenKey(spaceID, parentID))
+	if err != nil {
+		return nil, 0, err
+	}
+	if !ok {
+		return ChildMap{}, 0, nil // empty directory, no entry yet
+	}
+	var children ChildMap
+	if err := msgpack.Unmarshal(data, &children); err != nil {
+		return nil, 0, errors.Wrap(err, "kvfs: failed to unmarshal children")
+	}
+	return children, rev, nil
 }
 
 // PutChildren updates the children list for a parent using CAS.
@@ -886,14 +952,27 @@ func (s *KVStore) GetUpload(uploadID string) (*UploadSession, error) {
 	start := time.Now()
 	entry, err := s.uploads.Get(uploadID)
 	KVOperationDuration.WithLabelValues("uploads", "get").Observe(time.Since(start).Seconds())
-	if err != nil {
-		if err == nats.ErrKeyNotFound {
+	var value []byte
+	switch {
+	case err == nil:
+		value = entry.Value()
+	case err == nats.ErrKeyNotFound:
+		// A replica's view can trail a just-acknowledged PutUpload; a false
+		// not-found here surfaces to the client as a 404 on the running
+		// upload. Confirm the miss once with the leader.
+		data, _, ok, aerr := s.getLastAuthoritative(s.uploads, uploadID)
+		if aerr != nil {
+			return nil, aerr
+		}
+		if !ok {
 			return nil, ErrNotFound
 		}
+		value = data
+	default:
 		return nil, errors.Wrap(err, "kvfs: failed to get upload session")
 	}
 	var u UploadSession
-	if err := msgpack.Unmarshal(entry.Value(), &u); err != nil {
+	if err := msgpack.Unmarshal(value, &u); err != nil {
 		return nil, errors.Wrap(err, "kvfs: failed to unmarshal upload session")
 	}
 	return &u, nil
