@@ -176,20 +176,21 @@ func metadataDrivers(localEndpoint string, cfg *config.Config) map[string]any {
 	}
 
 	kvfsCfg := map[string]any{
-		"nats_nodes":              cfg.Drivers.KVFS.NATSNodes,
-		"nats_username":           cfg.Drivers.KVFS.NATSUsername,
-		"nats_password":           cfg.Drivers.KVFS.NATSPassword,
-		"nats_replicas":           cfg.Drivers.KVFS.NATSReplicas,
-		"bucket_prefix":           cfg.Drivers.KVFS.BucketPrefix,
-		"s3.endpoint":             cfg.Drivers.KVFS.S3Endpoint,
-		"s3.region":               cfg.Drivers.KVFS.S3Region,
-		"s3.bucket":               cfg.Drivers.KVFS.S3Bucket,
-		"s3.access_key":           cfg.Drivers.KVFS.S3AccessKey,
-		"s3.secret_key":           cfg.Drivers.KVFS.S3SecretKey,
-		"children_max_value_size": cfg.Drivers.KVFS.ChildrenMaxValueSize,
-		"max_cas_retries":         cfg.Drivers.KVFS.MaxCASRetries,
-		"max_delete_depth":        cfg.Drivers.KVFS.MaxDeleteDepth,
-		"disable_versioning":      true,
+		"nats_nodes":                 cfg.Drivers.KVFS.NATSNodes,
+		"nats_username":              cfg.Drivers.KVFS.NATSUsername,
+		"nats_password":              cfg.Drivers.KVFS.NATSPassword,
+		"nats_replicas":              cfg.Drivers.KVFS.NATSReplicas,
+		"bucket_prefix":              cfg.Drivers.KVFS.BucketPrefix,
+		"s3.endpoint":                cfg.Drivers.KVFS.S3Endpoint,
+		"s3.region":                  cfg.Drivers.KVFS.S3Region,
+		"s3.bucket":                  cfg.Drivers.KVFS.S3Bucket,
+		"s3.access_key":              cfg.Drivers.KVFS.S3AccessKey,
+		"s3.secret_key":              cfg.Drivers.KVFS.S3SecretKey,
+		"children_max_value_size":    cfg.Drivers.KVFS.ChildrenMaxValueSize,
+		"max_cas_retries":            cfg.Drivers.KVFS.MaxCASRetries,
+		"authoritative_read_timeout": cfg.Drivers.KVFS.AuthoritativeReadTimeout,
+		"max_delete_depth":           cfg.Drivers.KVFS.MaxDeleteDepth,
+		"disable_versioning":         true,
 		// The system instance has its own uploads bucket and blob
 		// namespace, so it needs its own GC: expired upload sessions and
 		// crash residue accumulate without bound otherwise. Off by

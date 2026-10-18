@@ -246,6 +246,9 @@ type KVFSDriver struct {
 	// MaxCASRetries bounds every CAS retry loop in the driver. Bursts on a hot parent need more retries than the default 10.
 	MaxCASRetries int `yaml:"max_cas_retries" env:"STORAGE_USERS_KVFS_MAX_CAS_RETRIES" desc:"Maximum CAS retry attempts per write. Tune up on contended hot-parent workloads. Default: 10." introductionVersion:"1.0.0"`
 
+	// AuthoritativeReadTimeout bounds the single leader read confirming a direct KV miss.
+	AuthoritativeReadTimeout time.Duration `yaml:"authoritative_read_timeout" env:"STORAGE_USERS_KVFS_AUTHORITATIVE_READ_TIMEOUT" desc:"Upper bound for the authoritative leader read that confirms a KV miss. Default: 5s." introductionVersion:"%%NEXT%%"`
+
 	// MaxDeleteDepth bounds recursive delete traversal (trash purge, space delete).
 	MaxDeleteDepth int `yaml:"max_delete_depth" env:"STORAGE_USERS_KVFS_MAX_DELETE_DEPTH" desc:"Maximum directory nesting depth a recursive delete (trash purge, space delete) traverses before failing with a 4xx. Guards the runtime stack. Default: 100." introductionVersion:"1.0.0"`
 

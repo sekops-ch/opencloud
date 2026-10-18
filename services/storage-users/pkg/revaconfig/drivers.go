@@ -432,6 +432,7 @@ func KVFS(cfg *config.Config) map[string]interface{} {
 		"service_account_id":          cfg.ServiceAccount.ServiceAccountID,
 		"service_account_secret":      cfg.ServiceAccount.ServiceAccountSecret,
 		"max_cas_retries":             cfg.Drivers.KVFS.MaxCASRetries,
+		"authoritative_read_timeout":  cfg.Drivers.KVFS.AuthoritativeReadTimeout,
 		"max_delete_depth":            cfg.Drivers.KVFS.MaxDeleteDepth,
 		"children_max_value_size":     cfg.Drivers.KVFS.ChildrenMaxValueSize,
 		"small_file_threshold":        cfg.Drivers.KVFS.SmallFileThreshold,
